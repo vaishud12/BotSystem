@@ -1,51 +1,62 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet-fullscreen"; 
+import "leaflet-fullscreen/dist/leaflet.fullscreen.css"; 
+
+// Fix Leaflet marker icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
+  iconUrl: require("leaflet/dist/images/marker-icon.png"),
+  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+});
 
 const MapComponent = ({ onPlaceSelect }) => {
-  const [map, setMap] = useState(null);
-  const [marker, setMarker] = useState(null);
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
 
   useEffect(() => {
-    const initializeMap = () => {
-      const mapOptions = {
-        center: { lat: -34.397, lng: 150.644 }, // Default location
-        zoom: 8,
-      };
+    // Initialize the map
+    mapRef.current = L.map("map").setView([51.505, -0.09], 13); 
 
-      const googleMap = new window.google.maps.Map(document.getElementById("map"), mapOptions);
+    // Add tile layer
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+    }).addTo(mapRef.current);
 
-      googleMap.addListener("click", (event) => {
-        const latLng = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-        placeMarker(latLng, googleMap);
-        onPlaceSelect(latLng); // Callback to parent with coordinates
-      });
+    // Click event to add or move marker
+    mapRef.current.on("click", (e) => {
+      const { lat, lng } = e.latlng;
 
-      setMap(googleMap);
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lng]); // Move existing marker
+      } else {
+        // Create a new marker
+        markerRef.current = L.marker([lat, lng]).addTo(mapRef.current)
+          .bindPopup(`Marker at: [${lat.toFixed(5)}, ${lng.toFixed(5)}]`)
+          .openPopup();
+      }
+
+      onPlaceSelect({ lat, lng });
+    });
+
+    return () => {
+      mapRef.current.off(); // Clean up events
+      mapRef.current.remove(); // Cleanup the map instance
     };
-
-    if (!window.google) {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap`;
-      script.async = true;
-      script.defer = true;
-      window.initMap = initializeMap; // Set global init function
-      document.body.appendChild(script);
-    } else {
-      initializeMap();
-    }
   }, [onPlaceSelect]);
 
-  const placeMarker = (location, googleMap) => {
-    if (marker) {
-      marker.setMap(null); // Remove the previous marker
-    }
-    const newMarker = new window.google.maps.Marker({
-      position: location,
-      map: googleMap,
-    });
-    setMarker(newMarker);
-  };
-
-  return <div id="map" style={{ width: "100%", height: "400px" }} />;
+  return (
+    <div
+      id="map"
+      style={{
+        width: "100%",
+        height: "400px",
+        backgroundColor: "lightgray", // Visible background for testing
+      }}
+    />
+  );
 };
 
 export default MapComponent;
