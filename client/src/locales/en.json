@@ -159,6 +159,78 @@
       "company_name": "Company Name",
       "emp_code": "Emp_Code",
       "designation":"Designation"
+  },
+
+  "content": {
+    "intro": "Revolutionizing Incident Management in",
+    "getInTouch": "Get In Touch",
+    "joinNow": "Join Now",
+    "frameworkTitle": "The Passion Incident Framework",
+    "frameworkDescription": "At PASSIONIT PCOMBINATOR, we believe in streamlining business operations to help organizations thrive. Our incident management tool is designed to provide a comprehensive solution for managing product defects, customer support issues, product repairs, and ongoing maintenance. Seamlessly integrating into any website as a bot, our tool is tailored for SMEs, MSMEs, cooperative banks, startups, and angel groups. We aim to move beyond the traditional 'Contact Us' approach by offering a proactive, dynamic solution to help minimize risks and resolve business issues before they escalate.",
+    "strategicFocusAreas": {
+      "title": "Strategic Focus Areas",
+      "areas1": "Research and Development",
+      "areas2":"Product Launch",
+      "areas3": "Business Development",
+      "areas4":"Skills Development"
+      
+    },
+    "futureLandscape": "Eager to Explore the Future Landscape of Startup Support?",
+    "efficiency": "We use unique solutions and processes to enhance the efficiency of startups and improve productivity. Join our platform and be a part of the startup management ecosystem.",
+   
+      "vtitle": "OUR VISION",
+      "vcontent": "We empower organizations of all sizes with intelligent tools that enhance operational efficiency, streamline incident management, and create a seamless experience for both customers and internal teams, leading to minimized risks and maximized productivity.",
+      "mtitle": "OUR MISSION",
+      "mcontent": "To revolutionize the way businesses handle incidents by providing an easy-to-integrate, AI-driven solution that proactively identifies, manages, and resolves product and service issues. We are committed to using the PASSION Framework to guide businesses toward efficient operations, risk reduction, and sustainable growth, enabling them to focus on innovation and customer satisfaction.",
+  
+    "services": {
+      "title": "OUR SERVICES",
+       
+        "list1":"Management Research",
+        "list2":"Business Intelligence",
+        "list3":"Operational Research",
+        "list4":"Startup Acceleration",
+       "list5": "Market Research",
+       "list6": "Financial Management"
+      
+    },
+    "pCombinator": {
+      "title": "Explore our specialized domain ",
+      "title1": "PCombinator",
+      "description": "A platform for young innovators to research, partner, and collaborate. We provide resources, mentorship, and networking opportunities to help startups succeed.",
+      "learnMore": "Learn More",
+      "getConnected": "Get Connected"
+    },
+    "aiJourney": {
+      "title": "Want to learn Artificial Intelligence, Automation, RPA and Cyber Security?",
+      "title1": "Artificial Intelligence, Automation, RPA and Cyber Security?",
+      "description": "Join the Journey of Innovation and Security Today!"
+    },
+    "contact": {
+      "title": "PASSION IT.com",
+      "description": "A dynamic platform dedicated to empowering innovation, research, and development across diverse industries.",
+      "address": "Office #5, Block 1, Lloyds Chambers, Mangalwar Peth, Near Ambedkar Bavan, Pune - 411011",
+      "phone": "+91 8983003402",
+      "quickLinks": [
+        "About Us",
+        "Services",
+        "Research and Development",
+        "Skilling Development",
+        "Product Launch",
+        "Business Development",
+        "Resources",
+        "News",
+        "Journals",
+        "Forums",
+        "Stores",
+        "Join Our Team",
+        "Get Started with Passion IT",
+        "Partner with us",
+        "Get in Touch",
+        "Enroll with Passion IT",
+        "Connect with us"
+      ]
+    }
   }
 }
   

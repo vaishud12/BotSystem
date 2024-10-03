@@ -64,7 +64,7 @@ function Login() {
 <div className="w-full flex justify-end p-3 bg-gray-100">
         <LanguageSwitcher />
       </div>
-<div className="flex flex-col lg:flex-row h-full lg:h-screen">
+<div className="flex flex-col lg:flex-row md:flex-row sm:flex-row h-full lg:h-screen">
         {/* Text and Image Section */}
         <div className="flex-1 bg-gray-200 p-6">
           <div className="flex flex-col lg:flex-row items-center lg:items-start lg:space-x-10">
@@ -159,7 +159,7 @@ function Login() {
           </button>
         </form>
         <p className="mt-4 text-sm">
-          {t("login.no_account")} <Link to="/" className="text-blue-500">Sign up</Link>
+          {t("login.no_account")} <Link to="/signup" className="text-blue-500">Sign up</Link>
         </p>
         <p className="mt-4 text-sm">
           <Link to="/forgetPassword" className="text-blue-500">{t("login.forgot_password")}</Link>

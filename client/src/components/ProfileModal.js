@@ -29,7 +29,7 @@ const ProfileModal = ({ isOpen, onClose, email }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-30">
       <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 className="text-xl font-semibold mb-4">{t("details")}</h2>
+        <h2 className="text-xl font-semibold mb-4">{t("profile.details")}</h2>
         <div className="mb-4">
           <strong>{t("profile.name")}:</strong> {userDetails.name}
         </div>

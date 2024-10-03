@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import './FAddEdit.css';
-
+import MapComponent from '../components/MapComponent';
 import * as API from "../Endpoint/Endpoint";
 import 'react-quill/dist/quill.snow.css'; // Import the Quill styles
 import PlainTextQuillEditor from '../components/PlainTextQuillEditor';
@@ -17,7 +17,7 @@ const initialState = {
     incidentdescription: '',
     date: '',
     currentaddress: '',
-    gps: '',
+  
     raisedtouser: '',
     
     status: ''
@@ -33,7 +33,7 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
     const [incidentNames, setIncidentNames] = useState([]);
     const [priority, setPriority] = useState('');
     const [incidentDescriptions, setIncidentDescriptions] = useState([]);
-    const {sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress, gps, raisedtouser, status} = state;
+    const {sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress,  raisedtouser, status} = state;
     const { incidentid } = useParams();
     const userId = localStorage.getItem("user_id");
     console.log(userId);
@@ -44,6 +44,12 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
     const [showConfirmInvite, setShowConfirmInvite] = useState(false);
 
     const [photo, setPhoto] = useState(null);
+
+    const [gps, setGps] = useState("");
+    const handlePlaceSelect = (coordinates) => {
+        const { lat, lng } = coordinates; // Destructure latitude and longitude
+        setGps(`${lat}, ${lng}`); // Update state with coordinates
+      };
     // console.log(editItem.incidentid)
     // Constant variable for tag names
     const tagNames = tags.map(tag => tag.name);
@@ -368,6 +374,9 @@ const handlePhotoChange = (e) => {
             ...prevState,
             [name]: value
         }));
+        if (name === "gps") {
+            setGps(value); // Assuming setCoordinates is defined to manage GPS state
+        }
         
         // const handleEmailChange = (e) => {
         //     const email = e.target.value;
@@ -548,15 +557,16 @@ const handlePhotoChange = (e) => {
                         onChange={handleInputChange}
                     />
 
-                    <label htmlFor="gps">{t("addincident.gps")}</label>
-                    <input
-                        type="text"
-                        id="gps"
-                        name="gps"
-                        value={gps || ""}
-                        placeholder={t("addincident.enter_gps_coordinates")}
-                        onChange={handleInputChange}
-                    />
+<label htmlFor="gps">{t("addincident.gps")}</label>
+      <MapComponent onPlaceSelect={handlePlaceSelect} />
+      <input
+        type="text"
+        id="gps"
+        name="gps"
+        value={gps || ""}
+        placeholder={t("addincident.enter_gps_coordinates")}
+        onChange={handleInputChange}
+      />
 
 <div>
     <label htmlFor="raisedtouser">{t("addincident.raise_to_user")}</label>

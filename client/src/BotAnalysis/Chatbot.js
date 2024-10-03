@@ -102,8 +102,8 @@ const Chatbot = () => {
                 {showPopup && (
                     <div></div>
                 )}
-                <div className={`fixed top-4 right-4 ${minimized ? 'hidden' : ''} w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl`}>
-                    <div className="bg-white p-4 sm:p-6 md:p-8 lg:p-10 rounded-lg border border-[#e5e7eb] h-[90vh] sm:h-[95vh] md:h-[100vh] lg:h-[89vh] xl:h-[98vh] relative">
+                <div className={`fixed top-8 right-4 ${minimized ? 'hidden' : ''} w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl`}>
+                    <div className="bg-white p-4 sm:p-6 md:p-8 lg:p-10 rounded-lg border border-[#e5e7eb] h-[84vh] sm:h-[86vh] md:h-[90vh] lg:h-[85vh] xl:h-[95vh] relative">
                         <div className="flex flex-col space-y-1.5 pb-6 pt-6">
                             <h2 className="p-2 text-lg font-bold tracking-tight text-white bg-blue-800 rounded">Virtual Assistant (ChatBot)</h2>
                             <p className="text-sm text-[#6b7280] leading-3 bg-gray-200 p-2 rounded">WELCOME TO AI GOVERNANCE BOT</p>
