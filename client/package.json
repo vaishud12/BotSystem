@@ -17,6 +17,7 @@
     "leaflet": "^1.9.4",
     "leaflet-fullscreen": "^1.0.2",
     "lucide-react": "^0.441.0",
+    "maplibre-gl": "^4.7.1",
     "nodemailer": "^6.9.13",
     "quill": "^2.0.2",
     "react": "^18.3.1",

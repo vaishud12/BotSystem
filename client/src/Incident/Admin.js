@@ -120,31 +120,38 @@ const Admin = () => {
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 
     // Filter incidents based on search query
-   
     const filterIncidents = (incidentsByUser) => {
+        console.log("Search Query:", searchQuery);
+        console.log("Selected Tag:", selectedTag);
+        console.log("Incidents By User:", incidentsByUser);
+    
         return incidentsByUser.filter(user => {
-            return user.incidents.some(incident => {
-                // Ensure incident is defined before accessing its properties
+            const hasMatchingIncident = user.incidents.some(incident => {
                 const matchesSearchQuery = (
                     (incident.incidentname && incident.incidentname.toLowerCase().includes(searchQuery.toLowerCase())) ||
                     (incident.description && incident.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                    (incident.sector && incident.sector.toLowerCase().includes(searchQuery.toLowerCase())) || // Check sector
-                    (incident.category && incident.category.toLowerCase().includes(searchQuery.toLowerCase())) || // Check category
-                    (incident.priority && incident.priority.toLowerCase().includes(searchQuery.toLowerCase())) || // Check priority
-                    (incident.status && incident.status.toLowerCase().includes(searchQuery.toLowerCase())) || // Check status
-                    (Array.isArray(incident.tagss) && incident.tagss.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))) || // Check tags
-                    (incident.date && incident.date.toString().toLowerCase().includes(searchQuery.toLowerCase())) || // Check date
-                    (incident.gps && incident.gps.toString().toLowerCase().includes(searchQuery.toLowerCase())) || // Check GPS coordinates
-                    (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) // Check user email
+                    (incident.sector && incident.sector.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    (incident.category && incident.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    (incident.priority && incident.priority.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    (incident.status && incident.status.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    (Array.isArray(incident.tagss) && incident.tagss.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))) ||
+                    (incident.date && incident.date.toString().toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    (incident.gps && incident.gps.toString().toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
                 );
     
                 return matchesSearchQuery;
-            }) && 
-            (selectedTag === '' || (user.incidents.some(incident =>
+            });
+    
+            // Check for selected tag if it is not empty
+            const matchesSelectedTag = selectedTag === '' || user.incidents.some(incident =>
                 Array.isArray(incident.tagss) && incident.tagss.some(tag => tag.toLowerCase() === selectedTag.toLowerCase())
-            )));
+            );
+    
+            return hasMatchingIncident && matchesSelectedTag;
         });
     };
+    
     
     const handlePriorityTimesSubmit = async (e) => {
         e.preventDefault();
