@@ -130,15 +130,22 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
     useEffect(() => {
         if (editItem && editItem.incidentid) {
             setState(editItem);
+            setTags(editItem.tags || []);
+            setRemark(editItem.remark || '');
         } else if (incidentid) {
             axios.get(API.GET_SPECIFIC_INCIDENT(incidentid))
                 .then(resp => {
                     console.log("Response:", resp.data);
-                    setState(resp.data[0]);
+                    const incidentData = resp.data[0]; // Define incidentData here
+
+                setState(incidentData);  // Set the entire state
+                setTags(incidentData.tags || []);  // Set tags from incidentData
+                setRemark(incidentData.remark || ''); 
                 })
                 .catch(error => console.error(error));
         }
     }, [editItem, incidentid]);
+
 
     useEffect(() => {
         axios.get(API.GET_DISTINCT_SECTOR)
@@ -563,7 +570,7 @@ const handlePhotoChange = (e) => {
         type="text"
         id="gps"
         name="gps"
-        value={gps || ""}
+        value={gps || editItem?.gps || ""}  // Prefill with editItem GPS
         placeholder={t("addincident.enter_gps_coordinates")}
         onChange={handleInputChange}
       />

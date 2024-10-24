@@ -292,7 +292,7 @@ useEffect(() => {
                      {t("incidentd.view")}
                   </button>
                
-                <button className="btn btn-edit" onClick={() => handleEditUserClick(item)}>{t("incidentd.edit")}</button>
+                
                 <button className="btn btn-edit" onClick={() => handleResolveClick(item)}>Resolve</button>
                 <button className="btn btn-delete" onClick={() => deleteObject(item.incidentid)}>{t("incidentd.delete")}</button>
               </td>

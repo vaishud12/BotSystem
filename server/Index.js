@@ -995,11 +995,27 @@ const uploading = multer({ storage: storagi });
 app.post('/incident-api/incidentpost', uploading.single('photo'), (req, res) => {
     const { sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress, gps, raisedtouser, status, userid, id, tagss, priority, remark } = req.body;
 
+    
+    // Debug: Log raw incoming tags
+    console.log('Raw tags received:', tagss);
+
+    // Ensure tags are properly handled
+    // If tagss is a single string, split it into an array
+    const tagsArray = typeof tagss === 'string' ? tagss.split(',') : tagss;
+
+    // Remove duplicates using a Set and convert back to an array
+    const uniqueTagsArray = Array.from(new Set(tagsArray.map(tag => tag.trim()))); // Trim whitespace
+
+    // Convert the unique tags array into a PostgreSQL array format
+    const formattedTags = `{${uniqueTagsArray.join(',')}}`; // Converts to {tag1,tag2}
+
     // Extract the filename from the uploaded file
     const photo = req.file ? req.file.filename : null;
 
-    console.log('Received file:', photo); // Check if this logs the file name
-    console.log('Received remark:', remark);
+    // Debug: Log the unique tags and the formatted version
+    console.log('Unique tags:', uniqueTagsArray);
+    console.log('Formatted tags for database:', formattedTags);
+
 
     // Insert data into the database
     const sqlInsert = `
@@ -1066,30 +1082,31 @@ app.post("/incident-api/send-incident-email", uploading.single('photo'), async (
                 from: incidentowner,
                 to: email1,
                 subject: `Incident Report: ${incidentname}`,
-                text: `Resolve this incident within the given time frame: ${timeFrame}.
-
-Incident Report: ${incidentname}
-
-Sector: ${sector}
-Incident Category: ${incidentcategory}
-Incident Name: ${incidentname}
-Incident Owner: ${incidentowner}
-Description: ${incidentdescription}
-Date: ${date}
-Current Address: ${currentaddress}
-GPS: ${gps}
-Raised to User: ${raisedtouser}
-Status: ${status}
-priority:${priority}
-Remarks:${remark}`, 
-attachments: filePath ? [
-    {
-        filename: fileName, // The uploaded file's name
-        path: filePath,     // The uploaded file's path
-        cid: 'incidentphoto@incidentemail'
-    }
-] : [] // No attachments if no file uploaded
-};
+                html: `
+                <p>Resolve this incident within the given time frame: <strong>${timeFrame}</strong>.</p>
+               
+                <h3>Incident Report: ${incidentname}</h3>
+                <p><strong>Sector:</strong> ${sector}</p>
+                <p><strong>Incident Category:</strong> ${incidentcategory}</p>
+                <p><strong>Incident Name:</strong> ${incidentname}</p>
+                <p><strong>Incident Owner:</strong> ${incidentowner}</p>
+                <p><strong>Description:</strong> ${incidentdescription}</p>
+                <p><strong>Date:</strong> ${date}</p>
+                <p><strong>Current Address:</strong> ${currentaddress}</p>
+                <p><strong>GPS:</strong> ${gps}</p>
+                <p><strong>Raised to User:</strong> ${raisedtouser}</p>
+                <p><strong>Status:</strong> ${status}</p>
+                <p><strong>Priority:</strong> ${priority}</p>
+                <p><strong>Remarks:</strong> ${remark}</p>
+            `,
+            attachments: filePath ? [
+                {
+                    filename: fileName, // The uploaded file's name
+                    path: filePath,     // The uploaded file's path
+                    cid: 'incidentphoto@incidentemail'
+                }
+            ] : [] // No attachments if no file uploaded
+        };
 
             await transporter.sendMail(mailOptions);
             res.status(200).json({ message: "Incident email sent successfully." });
@@ -1115,17 +1132,72 @@ app.delete("/incident-api/incidentdelete/:incidentid", (req, res) => {
     } );
 });
 
-app.put("/incident-api/incidentupdate/:incidentid", (req, res) => {
-    const { incidentid } = req.params;
-    const { sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress, gps, raisedtouser, status, tagss, priority } = req.body;
-    const sqlUpdate = "UPDATE incident SET sector=$1, incidentcategory=$2, incidentname=$3, incidentowner=$4, incidentdescription=$5, date=$6, currentaddress=$7, gps=$8, raisedtouser=$9, status=$10, tagss=$11, priority=$12 WHERE incidentid = $13";
-    const values = [sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress, gps, raisedtouser, status, tagss, priority, incidentid];
+app.put('/incident-api/incidentupdate/:incidentid', uploading.single('photo'), (req, res) => {
+    const { 
+        sector, 
+        incidentcategory, 
+        incidentname, 
+        incidentowner, 
+        incidentdescription, 
+        date, 
+        currentaddress, 
+        gps, 
+        raisedtouser, 
+        status, 
+        tagss, 
+        priority, 
+        remark 
+    } = req.body;
+
+    // Ensure tags are properly handled
+    // If tagss is a single string, split it into an array
+    const tagsArray = typeof tagss === 'string' ? tagss.split(',') : tagss;
+
+    // Remove duplicates using a Set and convert back to an array
+    const uniqueTagsArray = Array.from(new Set(tagsArray.map(tag => tag.trim()))); // Trim whitespace
+
+    // Convert the unique tags array into a PostgreSQL array format
+    const formattedTags = `{${uniqueTagsArray.join(',')}}`; // Converts to {tag1,tag2}
+
+    // Extract the filename from the uploaded file
+    const photo = req.file ? req.file.filename : null;
+
+    // Log the unique tags and the formatted version for debugging
+    console.log('Unique tags:', uniqueTagsArray);
+    console.log('Formatted tags for database:', formattedTags);
+
+    // Create the SQL UPDATE query
+    const sqlUpdate = `
+        UPDATE incident 
+        SET 
+            sector = $1, 
+            incidentcategory = $2, 
+            incidentname = $3, 
+            incidentowner = $4, 
+            incidentdescription = $5, 
+            date = $6, 
+            currentaddress = $7, 
+            gps = $8, 
+            raisedtouser = $9, 
+            status = $10, 
+            tagss = $11, 
+            priority = $12, 
+            remark = $13, 
+            photo = $14 
+        WHERE incidentid = $15
+    `;
+
+    // Prepare the values for the SQL query
+    const values = [sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress, gps, raisedtouser, status, formattedTags, priority, remark, photo, req.params.incidentid];
+
+    // Execute the query
     db.query(sqlUpdate, values, (error, result) => {
         if (error) {
-            console.error("Error updating resolution:", error);
-            return res.status(500).json({ error: "Internal server error" });
+            console.error("Error updating incident:", error);
+            res.status(500).json({ error: "Internal server error" });
+        } else {
+            res.status(200).json({ message: "Incident updated successfully" });
         }
-        res.status(200).json({ message: "Incident updated successfully" });
     });
 });
 app.get("/incident-api/incidentget/:incidentid", async (req, res) => {
@@ -1410,20 +1482,54 @@ app.post("/incident-api/send-emailforresolved", async (req, res) => {
             from: fromEmail,
             to: [email1].filter(email => email !== ""),
             subject: `The Incident Resolved Report: ${incidentname}`, // Use backticks for template literals
-            text: `
-
-                This Query has been resolved by ${resolvedby}
-                
-                Incident id: ${incidentid},
-                Sector:${sector},
-                Incident Category:${incidentcategory},
-                Incident name: ${incidentname},
-                Incident Owner: ${incidentowner},
-                Resolution Date: ${resolutiondate},
-                Resolution Remark: ${resolutionremark},
-                Resolved By: ${resolvedby}
-            ` // Use backticks for multi-line template literals
+            html: `
+                <html>
+                    <body>
+                        <h2>Incident Resolved Report</h2>
+                        <p>This Query has been resolved by <strong>${resolvedby}</strong></p>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr>
+                                <th style="border: 1px solid #ddd; padding: 8px;">Field</th>
+                                <th style="border: 1px solid #ddd; padding: 8px;">Details</th>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">Incident ID</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${incidentid}</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">Sector</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${sector}</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">Incident Category</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${incidentcategory}</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">Incident Name</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${incidentname}</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">Incident Owner</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${incidentowner}</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">Resolution Date</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${resolutiondate}</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">Resolution Remark</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${resolutionremark}</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ddd; padding: 8px;">Resolved By</td>
+                                <td style="border: 1px solid #ddd; padding: 8px;">${resolvedby}</td>
+                            </tr>
+                        </table>
+                    </body>
+                </html>
+            `
         };
+        
 
         await transporter.sendMail(mailOptions);
         res.status(200).json({ message: "Email sent successfully" });
