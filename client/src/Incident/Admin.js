@@ -80,18 +80,25 @@ const Admin = () => {
     
             // Group incidents by user email
             const groupedIncidents = incidents.reduce((acc, incident) => {
-                if (!acc[incident.email]) {
-                    acc[incident.email] = [];
+                if (!acc[incident.name]) {
+                    acc[incident.name] = [];
                 }
-                acc[incident.email].push(incident);
+                acc[incident.name].push(incident);
                 return acc;
             }, {});
     
-            setIncidentsByUser(Object.entries(groupedIncidents).map(([email, incidents]) => ({
-                email,
+            setIncidentsByUser(Object.entries(groupedIncidents).map(([name, incidents]) => ({
+                name,
                 incidents,
             })));
             setLoading(false);
+
+            // Check resolved status for each incident
+            await Promise.all(
+                incidentsByUser.flatMap(user =>
+                    user.incidents.map(incident => checkResolvedStatus(incident.incidentid))
+                )
+            ); // Update resolved status if needed
         } catch (err) {
             console.error('Error fetching incidents:', err);
             setError('Failed to fetch incidents.');
@@ -115,7 +122,23 @@ const Admin = () => {
         loadTags();
     }, []);
     
+    const checkResolvedStatus = async (incidentId) => {
+        try {
+            const response = await axios.get(`${API.CHECK_RESOLUTION_STATUS}/${incidentId}`);
+            const isResolved = response.data.resolved; // Assuming the API returns { resolved: true/false }
     
+            // Update the state if resolved
+            setIncidentsByUser((prev) => prev.map(user => ({
+                email: user.email,
+                incidents: user.incidents.map(incident => ({
+                    ...incident,
+                    resolved: incident.incidentid === incidentId ? isResolved : incident.resolved,
+                }))
+            })));
+        } catch (err) {
+            console.error('Error checking resolved status:', err);
+        }
+    };
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 
@@ -181,8 +204,8 @@ const Admin = () => {
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-    const handleEditUserClick = (item) => {
-        setEditItem(item);
+    const handleEditUserClick = (incidentid) => {
+        setEditItem(incidentid);
         openModal();
     };
    
@@ -339,6 +362,7 @@ const Admin = () => {
                                 <th>{t("incidentd.status")}</th>
                                 <th>{t("incidentd.remark")}</th>
                                 <th>{t("incidentd.image")}</th>
+                                <th>Resolved</th>
                                 <th>{t("incidentd.action")}</th>
                             </tr>
                         </thead>
@@ -348,7 +372,7 @@ const Admin = () => {
             <tr key={`${userIndex}-${incidentIndex}`}>
                 <td>{(currentPage - 1) * itemsPerPage + incidentIndex + 1}</td> {/* Serial number */}
                 {incidentIndex === 0 && (
-                    <td rowSpan={user.incidents.length}><b>{user.email}</b></td>
+                    <td rowSpan={user.incidents.length}><b>{user.name}</b></td>
                 )}
                 <td>{incident.incidentid || 'N/A'}</td>
                 <td>{incident.sector || 'N/A'}</td>
@@ -360,7 +384,8 @@ const Admin = () => {
                 <td>{incident.currentaddress || 'N/A'}</td>
                 <td>{incident.incidentowner || 'N/A'}</td>
                 <td>{incident.raisedtouser || 'N/A'}</td>
-                <td>{incident.tagss || 'N/A'}</td>
+                <td>{incident.tagss.length > 0 ? incident.tagss.join(', ') : 'N/A'}</td>
+
                 <td>{incident.priority || 'N/A'}</td>
                 <td>{incident.status || 'N/A'}</td>
                 <td>{incident.remark || 'N/A'}</td>
@@ -376,6 +401,9 @@ const Admin = () => {
                             )}
                            
             </td>
+            <td style={{ color: incident.resolved ? 'red' : 'green', fontWeight: 'bold' }}>
+            {incident.resolved ? 'Inactive (Resolved)' : 'Active (Unresolved)'}
+        </td>
                       
                 <td>
                 
@@ -397,7 +425,7 @@ const Admin = () => {
     </div>
 )}
      
-                    <button className="btn btn-edit" onClick={() => handleEditUserClick(incident)}>{t("incidentd.edit")}</button>
+                    <button className="btn btn-edit" onClick={() => handleEditUserClick(incident.incidentid)}>{t("incidentd.edit")}</button>
                     <button className="btn btn-delete" onClick={() => deleteObject(incident.incidentid)}>{t("incidentd.delete")}</button>
                 </td>
             </tr>

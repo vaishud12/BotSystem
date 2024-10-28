@@ -2,7 +2,7 @@
 
 /* General Styles */
 input[type="text"],
-input[type="date"],
+input[type="datetime-local"],
 select {
   width: 100%;
   padding: 12px 20px;
@@ -105,6 +105,109 @@ input[type="password"]::placeholder {
 
 .confirmation-dialog button {
   margin: 5px;
+}
+
+/* .ReactTags__tagInputField {
+  width: calc(100% - 20px);
+  padding: 10px;
+  margin: 5px 0 20px;
+  border: 1px solid #ccc;
+  border-radius: 50px;
+  box-sizing: border-box;
+  background: #fff;
+  display: flex;
+  flex-wrap: nowrap; 
+  align-items: center;
+  overflow-x: scroll; 
+  white-space: nowrap; 
+}
+
+.ReactTags__tags {
+  display: flex;
+  flex-wrap: nowrap; 
+  gap: 8px;
+  margin-left: 0;
+}
+
+
+.ReactTags__tag {
+  background-color: #ccc;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap; 
+}
+
+
+.ReactTags__remove {
+  margin-left: 8px;
+  cursor: pointer;
+  color: #fff;
+} */
+
+/* Styling for the ReactTags input field */
+.ReactTags__tags {
+  flex-wrap: wrap;
+  border: 1px solid #ccc;
+  border-radius: 50px;
+  padding: 10px;
+  background-color: #fff;
+  margin: 5px 0 20px;
+  box-sizing: border-box;
+  align-items: start;
+  width: calc(100% - 20px);
+}
+
+/* Styling for each tag */
+.ReactTags__tag {
+  background-color: #ccc;
+  color: rgb(0, 0, 0);
+  padding: 5px 10px;
+  margin-right: 5px;
+  align-items: center;
+
+  border-radius: 50px;
+  opacity: 0.6 !important;
+  width: auto;
+}
+
+/* Styling for the remove button in each tag */
+.ReactTags__remove {
+  margin-left: 8px;
+  cursor: pointer;
+  color: #000000;
+  background: transparent;
+  border: 0;
+}
+
+/* Styling for the tag input field */
+.ReactTags__tagInput {
+  flex-grow: 1;
+}
+
+.ReactTags__tagInputField {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  padding: 1px;
+  background-color: transparent;
+  margin-left: 0;
+}
+
+/* Styling for the input when focused */
+.ReactTags__tagInputField:focus {
+  background-color: transparent;
+}
+
+/* Custom placeholder text color */
+.ReactTags__tagInputField::placeholder {
+  color: #aaa;
+}
+.ReactTags__selected {
+  display: block !important;
 }
 
 /* Media Queries for responsiveness */

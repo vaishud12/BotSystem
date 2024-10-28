@@ -1,28 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css'; // Import ReactQuill styles
+import 'react-quill/dist/quill.snow.css';
 
-const PlainTextQuillEditor = ({ onChange }) => {
+const PlainTextQuillEditor = ({ onChange, value }) => {
   const handleRemarkChange = (content) => {
-    // Convert HTML content to plain text
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(content, 'text/html');
-    const plainText = doc.body.textContent || "";
+    // Remove HTML tags using regex, leaving only plain text
+    const plainText = content.replace(/<\/?[^>]+(>|$)/g, "");
     onChange(plainText);
   };
 
   return (
     <ReactQuill
+      value={value}
       onChange={handleRemarkChange}
       theme="snow"
       placeholder="Add a remark..."
       modules={{
         toolbar: [
-          [{ 'header': '1' }, { 'header': '2' }, { 'font': [] }],
-          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ header: '1' }, { header: '2' }, { font: [] }],
+          [{ list: 'ordered' }, { list: 'bullet' }],
           ['bold', 'italic', 'underline'],
           ['link', 'image'],
-          [{ 'align': [] }],
+          [{ align: [] }],
           ['clean']
         ],
       }}

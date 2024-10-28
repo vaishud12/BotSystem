@@ -22,29 +22,35 @@ const ResolutionTable = () => {
 
   const loadData = async () => {
     try {
-      const response = await axios.get(API.GET_ADMIN_RESOLUTION);
-      const resolutions = response.data;
+        const response = await axios.get(API.GET_ADMIN_RESOLUTION);
+        const resolutions = response.data;
 
-      // Group resolutions by user email
-      const groupedResolutions = resolutions.reduce((acc, resolution) => {
-        if (!acc[resolution.user]) {
-          acc[resolution.user] = [];
-        }
-        acc[resolution.user].push(resolution);
-        return acc;
-      }, {});
+        // Group resolutions by user name instead of email
+        const groupedResolutions = resolutions.reduce((acc, resolution) => {
+            // Assuming resolution.user contains the email and resolution.name contains the user's name
+            const userName = resolution.name || resolution.user; // Fallback to email if name is not available
 
-      setResolutionsByUser(Object.entries(groupedResolutions).map(([user, resolutions]) => ({
-        user,
-        resolutions,
-      })));
-      setLoading(false);
+            if (!acc[userName]) {
+                acc[userName] = [];
+            }
+            acc[userName].push(resolution);
+            return acc;
+        }, {});
+
+        // Set state with user names
+        setResolutionsByUser(Object.entries(groupedResolutions).map(([user, resolutions]) => ({
+            user, // This is now the user name
+            resolutions,
+        })));
+
+        setLoading(false);
     } catch (err) {
-      console.error('Error fetching resolutions:', err);
-      setError('Failed to fetch resolutions.');
-      setLoading(false);
+        console.error('Error fetching resolutions:', err);
+        setError('Failed to fetch resolutions.');
+        setLoading(false);
     }
-  };
+};
+
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;

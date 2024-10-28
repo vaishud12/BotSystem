@@ -78,6 +78,8 @@ export const DELETE_RESOLUTION = (resolutionid) =>
 export const GET_ADMIN_RESOLUTION =
   `${BASE_URL}adminresolutionget`;
 
+  export const CHECK_RESOLUTION_STATUS = `${BASE_URL}check-resolution-status`;
+
 export const UPDATE_SPECIFIC_RESOLUTION = (resolutionid) =>
   `${BASE_URL}resolutionupdate/${resolutionid}`;
 

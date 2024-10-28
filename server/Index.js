@@ -948,6 +948,7 @@ app.get("/incident-api/incidentget", (req, res) => {
     const sqlGet = `
         SELECT
             a.email,
+            a.name,
             b.incidentid,
             b.sector,
             b.incidentname,
@@ -961,7 +962,7 @@ app.get("/incident-api/incidentget", (req, res) => {
             b.tagss,
             b.priority,
             b.status,
-            b.remark,b.photo 
+            b.remark,b.photo,b.resolved 
         FROM users a
         JOIN incident b ON a.id = b.id
     `;
@@ -993,29 +994,39 @@ const storagi = multer.diskStorage({
 const uploading = multer({ storage: storagi });
 
 app.post('/incident-api/incidentpost', uploading.single('photo'), (req, res) => {
-    const { sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress, gps, raisedtouser, status, userid, id, tagss, priority, remark } = req.body;
+    const { 
+        sector, 
+        incidentcategory, 
+        incidentname, 
+        incidentowner, 
+        incidentdescription, 
+        date, 
+        currentaddress, 
+        gps, 
+        raisedtouser, 
+        status, 
+        userid, 
+        id, 
+        tagss, 
+        priority, 
+        remark 
+    } = req.body;
 
-    
-    // Debug: Log raw incoming tags
+    // Debug: Log the incoming tags
     console.log('Raw tags received:', tagss);
 
-    // Ensure tags are properly handled
-    // If tagss is a single string, split it into an array
-    const tagsArray = typeof tagss === 'string' ? tagss.split(',') : tagss;
+    // Ensure tags are properly formatted as a PostgreSQL array
+    // Check if tagss is a string; if so, split it into an array
+    let tagssArray = Array.isArray(tagss) ? tagss : tagss.split(",");
 
-    // Remove duplicates using a Set and convert back to an array
-    const uniqueTagsArray = Array.from(new Set(tagsArray.map(tag => tag.trim()))); // Trim whitespace
+    // Trim whitespace around each tag
+    tagssArray = tagssArray.map(tagi => tagi.trim());
 
-    // Convert the unique tags array into a PostgreSQL array format
-    const formattedTags = `{${uniqueTagsArray.join(',')}}`; // Converts to {tag1,tag2}
+    // Convert tagss to a PostgreSQL-compatible array format
+    const formattedTags = `{${tagssArray.join(",")}}`;  // Use curly braces for PostgreSQL array format
 
     // Extract the filename from the uploaded file
     const photo = req.file ? req.file.filename : null;
-
-    // Debug: Log the unique tags and the formatted version
-    console.log('Unique tags:', uniqueTagsArray);
-    console.log('Formatted tags for database:', formattedTags);
-
 
     // Insert data into the database
     const sqlInsert = `
@@ -1024,9 +1035,15 @@ app.post('/incident-api/incidentpost', uploading.single('photo'), (req, res) => 
             date, currentaddress, gps, raisedtouser, status, 
             userid, id, tagss, priority, remark, photo
         ) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 
+                $11, $12, $13, $14, $15, $16)
     `;
-    const values = [sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress, gps, raisedtouser, status, userid, id, tagss, priority, remark, photo];
+    
+    const values = [
+        sector, incidentcategory, incidentname, incidentowner, incidentdescription, 
+        date, currentaddress, gps, raisedtouser, status, 
+        userid, id, formattedTags, priority, remark, photo
+    ];
 
     db.query(sqlInsert, values, (error, result) => {
         if (error) {
@@ -1037,6 +1054,7 @@ app.post('/incident-api/incidentpost', uploading.single('photo'), (req, res) => 
         }
     });
 });
+
 app.post("/incident-api/send-incident-email", uploading.single('photo'), async (req, res) => {
     try {
         const transporter = nodemailer.createTransport({
@@ -1149,21 +1167,20 @@ app.put('/incident-api/incidentupdate/:incidentid', uploading.single('photo'), (
         remark 
     } = req.body;
 
-    // Ensure tags are properly handled
-    // If tagss is a single string, split it into an array
-    const tagsArray = typeof tagss === 'string' ? tagss.split(',') : tagss;
+     // Check if auditees is a string; if so, split it into an array
+     let tagssArray = Array.isArray(tagss) ? tagss : tagss.split(",");
 
-    // Remove duplicates using a Set and convert back to an array
-    const uniqueTagsArray = Array.from(new Set(tagsArray.map(tag => tag.trim()))); // Trim whitespace
-
-    // Convert the unique tags array into a PostgreSQL array format
-    const formattedTags = `{${uniqueTagsArray.join(',')}}`; // Converts to {tag1,tag2}
+     // Trim whitespace around each tag
+     tagssArray = tagssArray.map(tagi=> tagi.trim());
+ 
+     // Convert tagss to a PostgreSQL-compatible array format
+     const formattedTags = `{${tagssArray.join(",")}}`;  // Use curly braces for PostgreSQL array format
 
     // Extract the filename from the uploaded file
     const photo = req.file ? req.file.filename : null;
 
     // Log the unique tags and the formatted version for debugging
-    console.log('Unique tags:', uniqueTagsArray);
+   
     console.log('Formatted tags for database:', formattedTags);
 
     // Create the SQL UPDATE query
@@ -1340,7 +1357,7 @@ app.get("/incident-api/adminresolutionget", (req, res) => {
             r.resolutionid,
             r.resolutionremark,
             r.resolvedby,
-            a.email AS user
+            a.email, a.name AS user
         FROM users a
         JOIN resolution r ON a.id = r.id
     `;
@@ -1355,7 +1372,39 @@ app.get("/incident-api/adminresolutionget", (req, res) => {
 });
 
 
+// Endpoint to check if an incident is resolved
+app.get("/incident-api/check-resolution-status/:incidentid", (req, res) => {
+    const { incidentid } = req.params;
 
+    // Query to check the resolution table for the incident ID
+    const sqlCheck = "SELECT EXISTS(SELECT 1 FROM resolution WHERE incidentid = $1) AS exists";
+    
+    db.query(sqlCheck, [incidentid], (error, result) => {
+        if (error) {
+            console.error("Error checking resolution status:", error);
+            return res.status(500).json({ error: "Internal server error" });
+        }
+
+        // Check if the incident exists in the resolution table
+        const incidentExists = result.rows[0].exists;
+
+        // Send response based on the check
+        if (incidentExists) {
+            // Update the resolved status in the incidents table
+            const sqlUpdate = "UPDATE incident SET resolved = TRUE WHERE incidentid = $1";
+            db.query(sqlUpdate, [incidentid], (error) => {
+                if (error) {
+                    console.error("Error updating resolved status:", error);
+                    return res.status(500).json({ error: "Internal server error" });
+                }
+                return res.json({ resolved: true });
+            });
+        } else {
+            return res.json({ resolved: false });
+        }
+    });
+});
+  
 
 // app.post("/api/resolutionpost", (req, res) => {
 //     const { incidentid,incidentcategory,incidentname,incidentowner,resolutiondate, resolutionremark, resolvedby } = req.body;
@@ -1369,29 +1418,62 @@ app.get("/incident-api/adminresolutionget", (req, res) => {
 //         res.status(200).json({ message: "Resolution inserted successfully" });
 //     });
 // });
-app.post("/incident-api/resolutionpost", (req, res) => {
-    // Destructure fields from the request body
-    const { incidentid, sector, incidentcategory, incidentname,  incidentowner, resolutiondate, resolutionremark, resolvedby,id } = req.body;
+app.post("/citincident-api/resolutionpost", (req, res) => {
+    const {
+        incidentid,
+        sector,
+        incidentcategory,
+        incidentname,
+        incidentowner,
+        resolutiondate,
+        resolutionremark,
+        resolvedby,
+        id // Ensure this is properly defined if needed
+    } = req.body;
 
     // Basic validation
-    if (!incidentid || !sector || !incidentcategory || !incidentname ||  !incidentowner || !resolutiondate || !resolutionremark || !resolvedby) {
+    if (!incidentid || !sector || !incidentcategory || !incidentname || !incidentowner || !resolutiondate || !resolutionremark || !resolvedby) {
         return res.status(400).json({ error: "All fields are required" });
     }
 
-    // SQL Insert query
-    const sqlInsert = "INSERT INTO resolution (incidentid, sector, incidentcategory, incidentname, incidentowner, resolutiondate, resolutionremark, resolvedby,id) VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9)";
-    const values = [incidentid, sector, incidentcategory, incidentname,  incidentowner, resolutiondate, resolutionremark, resolvedby,id];
-
-    // Execute the query
-    db.query(sqlInsert, values, (error, result) => {
-        if (error) {
-            console.error("Error inserting resolution:", error);
+    // Check if the incident already exists in the resolution table
+    const sqlCheck = "SELECT EXISTS(SELECT 1 FROM resolution WHERE incidentid = $1) AS exists";
+    db.query(sqlCheck, [incidentid], (checkError, checkResult) => {
+        if (checkError) {
+            console.error("Error checking resolution:", checkError);
             return res.status(500).json({ error: "Internal server error" });
         }
-        res.status(200).json({ message: "Resolution inserted successfully" });
+
+        // If incident already has a resolution
+        if (checkResult.rows[0].exists) {
+            return res.status(400).json({ error: "This incident ID already has a resolution." });
+        }
+
+        // SQL Insert query (update as needed)
+        const sqlInsert = "INSERT INTO resolution (incidentid, sector, incidentcategory, incidentname, incidentowner, resolutiondate, resolutionremark, resolvedby, id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)";
+        const values = [incidentid, sector, incidentcategory, incidentname, incidentowner, resolutiondate, resolutionremark, resolvedby, id]; // Ensure id is included if necessary
+
+        // Execute the insert query
+        db.query(sqlInsert, values, (insertError) => {
+            if (insertError) {
+                console.error("Error inserting resolution:", insertError);
+                return res.status(500).json({ error: "Internal server error" });
+            }
+
+            // Update resolved status in the incidents table
+            const sqlUpdate = "UPDATE incident SET resolved = TRUE WHERE incidentid = $1";
+            db.query(sqlUpdate, [incidentid], (updateError) => {
+                if (updateError) {
+                    console.error("Error updating incident status:", updateError);
+                    return res.status(500).json({ error: "Internal server error" });
+                }
+
+                // Successfully inserted resolution and updated the incident
+                return res.status(200).json({ message: "Resolution inserted successfully, incident marked as resolved." });
+            });
+        });
     });
 });
-
 app.delete("/incident-api/resolutiondelete/:resolutionid", (req, res) => {
     const { resolutionid } = req.params;
     const sqlRemove = "DELETE FROM resolution WHERE resolutionid = $1";

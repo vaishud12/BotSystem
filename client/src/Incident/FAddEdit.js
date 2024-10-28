@@ -1,6 +1,7 @@
 import React, { useCallback,  useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { WithContext as ReactTags } from "react-tag-input";
 import { toast } from 'react-toastify';
 import './FAddEdit.css';
 import MapComponent from '../components/MapComponent';
@@ -19,7 +20,7 @@ const initialState = {
     currentaddress: '',
   
     raisedtouser: '',
-    
+    tagss: [],
     status: ''
 };
 
@@ -34,11 +35,11 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
     const [priority, setPriority] = useState('');
     const [incidentDescriptions, setIncidentDescriptions] = useState([]);
     const {sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress,  raisedtouser, status} = state;
-    const { incidentid } = useParams();
+    
     const userId = localStorage.getItem("user_id");
     console.log(userId);
-    const [tags, setTags] = useState([]);
-    const [query, setQuery] = useState('');
+    const [tags, setTags] = useState(initialState);
+    
     const [remark, setRemark] = useState('');
     const [emailValidation, setEmailValidation] = useState({ exists: true, message: '' });
     const [showConfirmInvite, setShowConfirmInvite] = useState(false);
@@ -51,45 +52,7 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
         setGps(`${lat}, ${lng}`); // Update state with coordinates
       };
     // console.log(editItem.incidentid)
-    // Constant variable for tag names
-    const tagNames = tags.map(tag => tag.name);
-  
-    // Handle tag addition
-    const onAddition = useCallback(
-      (newTag) => {
-        if (newTag && !tags.find((tag) => tag.name === newTag.name)) {
-          setTags((prevTags) => [...prevTags, newTag]);
-        }
-      },
-      [tags]
-    );
-  
-    // Handle tag deletion
-    const onDelete = useCallback((tagIndex) => {
-      setTags((prevTags) => prevTags.filter((_, i) => i !== tagIndex));
-    }, []);
-  
-    // Handle input changes
-    const onInput = useCallback((query) => {
-      setQuery(query);
-    }, []);
-  
-    // Handle input key press to add tag
-    const handleKeyDown = (e) => {
-      if (e.key === 'Enter' && query.trim()) {
-        e.preventDefault(); // Prevent default form submission or other behavior
-        onAddition({ id: tags.length + 1, name: query.trim() });
-        setQuery(''); // Clear input after adding
-      }
-    };
-  
-    // Handle input blur event to create tag if input is not empty
-    const handleBlur = () => {
-      if (query.trim()) {
-        onAddition({ id: tags.length + 1, name: query.trim() });
-        setQuery(''); // Clear input after adding
-      }
-    };
+   
 
     const checkEmailExists = async (email) => {
         try {
@@ -128,23 +91,31 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
 
 
     useEffect(() => {
-        if (editItem && editItem.incidentid) {
-            setState(editItem);
-            setTags(editItem.tags || []);
-            setRemark(editItem.remark || '');
-        } else if (incidentid) {
-            axios.get(API.GET_SPECIFIC_INCIDENT(incidentid))
+        if (editItem) {
+            axios.get(API.GET_SPECIFIC_INCIDENT(editItem))
                 .then(resp => {
                     console.log("Response:", resp.data);
                     const incidentData = resp.data[0]; // Define incidentData here
-
-                setState(incidentData);  // Set the entire state
-                setTags(incidentData.tags || []);  // Set tags from incidentData
-                setRemark(incidentData.remark || ''); 
+    
+                    setState(incidentData);  // Set the entire state
+                    setGps(incidentData.gps);
+                    setRemark(incidentData.remark || ''); 
+                    setPriority(incidentData.priority);
+    
+                    // Ensure tags are properly set from incidentData.tagss
+                    if (incidentData.tagss && Array.isArray(incidentData.tagss)) {
+                        const auditeesTags = incidentData.tagss.map((tag, index) => ({
+                            id: tag, // Ideally use a unique ID
+                            text: tag.trim(),
+                        }));
+    
+                        setTags({ tagss: auditeesTags }); // Ensure you're setting the tags properly
+                    }
                 })
                 .catch(error => console.error(error));
         }
-    }, [editItem, incidentid]);
+    }, [editItem]);
+    
 
 
     useEffect(() => {
@@ -197,28 +168,45 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
         }
     }, [incidentname]);
     
+    const handleDelete = (i) => {
+        const newTags = tags.tagss.filter((tag, index) => index !== i);
+        setTags((prevState) => ({ ...prevState, tagss: newTags }));
+      };
+    
+      const handleAddition = (tag) => {
+       setTags((prevState) => ({
+          ...prevState,
+         tagss: [...prevState.tagss, tag],
+        }));
+      };
 
+      const KeyCodes = {
+        comma: 188,
+        enter: 13,
+      };
+    
+      const delimiters = [KeyCodes.comma, KeyCodes.enter];
     
     
     
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
+        
         console.log("Form submitted");
         console.log("Form data:", { sector, incidentcategory, incidentname, incidentowner, incidentdescription, date, currentaddress, gps, raisedtouser });
     
+        // Check if all fields have values
         if (!sector || !incidentcategory || !incidentname || !incidentowner || !incidentdescription || !date || !currentaddress || !gps || !raisedtouser) {
             alert("Please provide a value for each input field");
             return;
         }
     
         try {
-            // Fetch priority times from the server
+            // Fetch priority times
             const priorityResponse = await axios.get(API.GET_PRIORITY_TIME);
             const priorityTimes = priorityResponse.data;
     
-            // Determine the appropriate priority time
-            let timeFrame = '24 hours'; // Default value
+            let timeFrame = '24 hours'; // Default
             switch (priority) {
                 case 'critical':
                     timeFrame = priorityTimes.critical;
@@ -245,7 +233,6 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
     
             if (userResponse.data && userResponse.data.userid) {
                 const raisedToUserId = userResponse.data.userid;
-                console.log('Raised to User ID:', raisedToUserId);
     
                 // Create FormData object
                 const formData = new FormData();
@@ -261,25 +248,25 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
                 formData.append('status', status);
                 formData.append('userid', raisedToUserId);
                 formData.append('id', userId);
-                formData.append('tagss', tagNames); // Assuming `tagNames` is defined elsewhere
+                
+                formData.append(
+                    "tagss",
+                    tags.tagss.map((tag) => tag.text).join(",")
+                  );
                 formData.append('priority', priority);
                 formData.append('remark', remark);
-                if (Array.isArray(tagNames)) {
-                    tagNames.forEach(tag => {
-                        formData.append('tagss[]', tag); // Add each tag separately
-                    });
-                }
-                // Append photo if available
+                  
                 if (photo) {
                     formData.append('photo', photo);
                 }
     
                 console.log("Form Data:", formData);
+                console.log("Checking if editItem.incidentid exists:", editItem?.incidentid);
     
-                // Submit data
-                if (editItem && editItem.incidentid) {
+                // Determine whether to PUT or POST
+                if (editItem) {
                     // For updating an existing record
-                    await axios.put(API.UPDATE_SPECIFIC_INCIDENT(editItem.incidentid), formData, {
+                    await axios.put(API.UPDATE_SPECIFIC_INCIDENT(editItem), formData, {
                         headers: {
                             'Content-Type': 'multipart/form-data'
                         }
@@ -294,57 +281,53 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
                 }
     
                 setState(initialState);
-                toast.success(`${editItem && editItem.incidentid ? 'Incident updated' : 'Incident added'} successfully`);
+                toast.success(`${editItem ? 'Incident updated' : 'Incident added'} successfully`);
     
-               // Prepare FormData object for email payload
-            const emailFormData = new FormData();
-            emailFormData.append('email1', raisedtouser);
-            emailFormData.append('from', incidentowner);
-            emailFormData.append('sector', sector);
-            emailFormData.append('incidentcategory', incidentcategory);
-            emailFormData.append('incidentname', incidentname);
-            emailFormData.append('incidentowner', incidentowner);
-            emailFormData.append('incidentdescription', incidentdescription);
-            emailFormData.append('date', date);
-            emailFormData.append('currentaddress', currentaddress);
-            emailFormData.append('gps', gps);
-            emailFormData.append('raisedtouser', raisedtouser);
-            emailFormData.append('status', status);
-            emailFormData.append('priority', priority);
-            emailFormData.append('remark', remark);
-
-            // Append photo if available
-            if (photo) {
-                emailFormData.append('photo', photo); // Attach the file for the email
-            }
-
-            console.log("Email FormData:", emailFormData);
-
-            // Send email with incident details
-            try {
-                const emailResponse = await axios.post(API.SEND_INCIDENT_EMAIL, emailFormData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
-                console.log("Email response:", emailResponse);
-
-                if (emailResponse.status === 200) {
-                    toast.success('Email sent successfully');
-                    setEmailSent(true);
+                // Sending email
+                const emailFormData = new FormData();
+                emailFormData.append('email1', raisedtouser);
+                emailFormData.append('from', incidentowner);
+                emailFormData.append('sector', sector);
+                emailFormData.append('incidentcategory', incidentcategory);
+                emailFormData.append('incidentname', incidentname);
+                emailFormData.append('incidentowner', incidentowner);
+                emailFormData.append('incidentdescription', incidentdescription);
+                emailFormData.append('date', date);
+                emailFormData.append('currentaddress', currentaddress);
+                emailFormData.append('gps', gps);
+                emailFormData.append('raisedtouser', raisedtouser);
+                emailFormData.append('status', status);
+                emailFormData.append('priority', priority);
+                emailFormData.append('remark', remark);
+                if (photo) {
+                    emailFormData.append('photo', photo);
                 }
-            } catch (emailError) {
-                if (emailError.response && emailError.response.status === 404) {
-                    toast.warn(emailError.response.data.message || 'User not found.');
-                    setShowConfirmInvite(true);  // Show confirmation dialog
-                } else {
-                    toast.error("An error occurred while sending the email.");
-                }
-            }
-
     
-                // Prepare and open WhatsApp URL
-                const message = `This Incident ${incidentname} Should be Resolved within ${timeFrame}!!!!! ... Sector: ${sector}, Incident Category: ${incidentcategory}\nIncident Name: ${incidentname}\nIncident Owner: ${incidentowner}\nIncident Description: ${incidentdescription}\nDate: ${date}\nCurrent Address: ${currentaddress}\nGPS: ${gps}\nRaised to User: ${raisedtouser}\nStatus: ${status}\ntags:${tagNames}\npriority:${priority}\nRemark:${remark}`;
+                console.log("Email FormData:", emailFormData);
+    
+                // Send email with incident details
+                try {
+                    const emailResponse = await axios.post(API.SEND_INCIDENT_EMAIL, emailFormData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    });
+                    console.log("Email response:", emailResponse);
+    
+                    if (emailResponse.status === 200) {
+                        toast.success('Email sent successfully');
+                        setEmailSent(true);
+                    }
+                } catch (emailError) {
+                    if (emailError.response && emailError.response.status === 404) {
+                        toast.warn(emailError.response.data.message || 'User not found.');
+                        setShowConfirmInvite(true);  
+                    } else {
+                        toast.error("An error occurred while sending the email.");
+                    }
+                }
+    
+                const message = `This Incident ${incidentname} Should be Resolved within ${timeFrame}!!!!! ... Sector: ${sector}, Incident Category: ${incidentcategory}\nIncident Name: ${incidentname}\nIncident Owner: ${incidentowner}\nIncident Description: ${incidentdescription}\nDate: ${date}\nCurrent Address: ${currentaddress}\nGPS: ${gps}\nRaised to User: ${raisedtouser}\nStatus: ${status}\ntags:${tags.tagss.map(tag => tag.text).join(', ')}\npriority:${priority}\nRemark:${remark}`;
                 const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
                 window.open(whatsappUrl, '_blank');
     
@@ -359,16 +342,19 @@ const FAddEdit = ({ visible, onClose, editItem, loadData}) => {
     };
     
     
+    
 const handlePhotoChange = (e) => {
     setPhoto(e.target.files[0]);
   };
 
   const handleRemarkChange = (plainText) => {
-    setRemark(plainText);
-  };
+    setRemark(plainText); // Update to set the remark correctly when user edits
+};
     const handleGoBack = () => {
         onClose();
     };
+
+
 
     const handleInputChange = (e) => {
         
@@ -452,10 +438,10 @@ const handlePhotoChange = (e) => {
     return (
         <div className={`modal ${visible ? 'show' : 'hide'}`} style={{ marginTop: "20px" }}>
             <div className="modal-content">
-                <center><h1>{editItem && editItem.incidentid ? 'Edit Incident' : 'Add Incident'}</h1></center>
+                <center><h1>{editItem? 'Edit Incident' : 'Add Incident'}</h1></center>
                 <form onSubmit={handleSubmit}>
                 <div>
-                        <label>{t("addincident.add_incident")}</label>
+                        <label>{t("addincident.sector")}</label>
                         <select
                             style={{ fontFamily: "Poppins" }}
                             id="sector"
@@ -547,7 +533,7 @@ const handlePhotoChange = (e) => {
 
                     <label htmlFor="date">{t("addincident.date")}</label>
                     <input
-                        type="date"
+                        type="datetime-local"
                         id="date"
                         name="date"
                         value={date || ""}
@@ -589,34 +575,24 @@ const handlePhotoChange = (e) => {
 
     {message && <div style={{ color: 'green' }}className="message">{message}</div>}
 </div>
-<div>
-      <p>{t("addincident.select_or_add_tags")}.</p>
-      <div className="tag-input-container">
-        {tags.map((tag, index) => (
-          <span key={index} className="tag">
-            {tag.name}
-            <button
-              type="button"
-              onClick={() => onDelete(index)}
-              className="tag-remove-button"
-            >
-              ×
-            </button>
-          </span>
-        ))}
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => onInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          placeholder="Add new tag"
-          className="tag-input"
-        />
-      </div>
-      <p><b>{t("addincident.tag_names")}</b></p>
-      <pre><code>{JSON.stringify(tagNames, null, 2)}</code></pre>
-</div>             
+
+      
+      <div>
+                  <label className="add-edit-project-label" htmlFor="auditees">
+                    Tags
+                  </label>
+                  <div>
+                    <ReactTags
+                      tags={tags.tagss}
+                      handleDelete={handleDelete}
+                      handleAddition={handleAddition}
+                      delimiters={delimiters}
+                      placeholder="Add Tags"
+                    />
+                  </div>
+                </div>
+      
+           
                     <label htmlFor="status">{t("addincident.status")}</label>
                     <select
                         id="status"
@@ -684,11 +660,11 @@ const handlePhotoChange = (e) => {
         {t("addincident.low")}
     </label>
 </div>
-<input type="file" name="photo" onChange={handlePhotoChange} />
+<input type="file" name="photo" onChange={handlePhotoChange} /><br></br>
       {/* Rich Text Editor for Remark */}
-      <PlainTextQuillEditor onChange={handleRemarkChange} />
+      <PlainTextQuillEditor value={remark} onChange={handleRemarkChange} />
 
-                    <input type="submit" value={editItem && editItem.incidentid ? "Update" : "Save"} />
+                    <input type="submit" value={editItem ? "Update" : "Save"} />
                     {emailSent && <div style={{ color: 'green', marginTop: '10px' }}>Email sent successfully!</div>}
                 </form>
                 <button onClick={handleGoBack}>Go Back</button>
